@@ -1,0 +1,13 @@
+# Keryxis Android native
+
+Kotlin + Android XML Views. No WebView, Compose, Supabase client, or bundled credential. HTTPS requests use `HttpURLConnection` against `https://keryxis.ziawork.id/api/*`. Login uses custom `/api/login`; `keryxis_session` is encrypted at rest with Android Keystore AES-GCM, expires by cookie Max-Age (at most 12 hours), and is deleted on logout or HTTP 401. Backups and cleartext disabled. Debug APK uses Android's debug signing key; not a release credential.
+
+Build/test (JDK 17, Android SDK platform 35):
+
+```sh
+ANDROID_HOME=/home/ubuntu/android-sdk /home/ubuntu/.gradle/wrapper/dists/gradle-8.11.1-bin/*/gradle-8.11.1/bin/gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug
+```
+
+APK: `app/build/outputs/apk/debug/app-debug.apk`. Unit tests verify Indonesian phone normalization, broadcast draft validation, template field preservation/serialization, and upload MIME/size rules. Tests are local only and NEVER invoke `/api/broadcast` POST, message send, WhatsApp actions, or any write API. No device or authenticated UI flow was available for validation.
+
+Campaign creation is read-only by default: loading, selecting and previewing only use GET `/api/templates`, `/api/labels`, `/api/broadcast/sessions`, `/api/contacts/count`, and GET `/api/broadcast`. Two explicit confirmation dialogs (recipient count, template, label, connected session, delay) precede the single POST `/api/broadcast`; backend starts the real campaign immediately. Count/session rechecked before POST; changing count or lost session aborts. API field `delay_ms` accepts **seconds** (5–3600) despite name, matching web/server. If POST response fails, status uncertain: check history, do not retry blindly. The count endpoint is not an atomic reservation; server can see a different count if contacts change between final GET and POST. Live auth/device acceptance and actual send not tested. Text send and WhatsApp session actions also require confirmation. Template editor uses native Views: list/detail, live `{{nama}}` sample preview, create/edit/delete confirmation, header type spinner, authenticated image/PDF/video previews, extra attachments, and `ACTION_OPEN_DOCUMENT` streaming upload with MIME/10MB validation and progress. Existing buttons remain unchanged on edits; button editing and label editing remain web-only. Media send remains outside this build. Broadcast detail uses GET status and bounded foreground polling (up to eight reads, four-second interval), plus manual refresh; no automatic sends. Native UI, authenticated upload/download, video rendering, and actual messaging need device/account verification.
